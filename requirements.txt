@@ -13,48 +13,4 @@ redis==5.0.1  # If using Redis for aiocache
 crawl4ai==0.3.2  # Optional, if installed
 gunicorn==20.1.0  # For production deployment on Render
 requests>=2.32.3
-# Core FastAPI Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
 
-# Web Scraping Libraries
-beautifulsoup4==4.12.2
-crawl4ai==0.7.4
-trafilatura==1.6.4
-aiohttp==3.9.1
-requests==2.31.0
-lxml==4.9.3
-html5lib==1.1
-
-# AI Processing
-groq==0.4.1
-
-# Search API
-google-search-results==2.4.2
-
-# Data Validation & Processing
-pydantic==2.5.0
-pydantic[email]==2.5.0
-
-# Environment Management
-python-dotenv==1.0.0
-
-# Async Support
-asyncio==3.4.3
-httpx==0.25.2
-
-# Security & Authentication
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-
-# Utilities
-hashlib2==1.0.1
-urllib3==2.1.0
-certifi==2023.11.17
-
-
-
-# Development & Testing (optional)
-pytest==7.4.3
-pytest-asyncio==0.21.1
