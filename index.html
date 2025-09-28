@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Analysis Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0d1421 0%, #1a1f2e 100%);
+            color: #e4e6ea;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(20, 25, 35, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #4f46e5, #06b6d4);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        main {
+            padding: 2rem 0;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+
+        .analysis-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-section {
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #e4e6ea;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #e4e6ea;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #e4e6ea;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .analyze-btn {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, #4f46e5, #06b6d4);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            background: rgba(100, 116, 139, 0.5);
+            cursor: not-allowed;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .performance-badge {
+            padding: 0.25rem 0.75rem;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #22c55e;
+        }
+
+        .report-content {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'Georgia', serif;
+            line-height: 1.7;
+        }
+
+        .metadata-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .metadata-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .metadata-title {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metadata-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            color: #fca5a5;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .quick-sectors {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .sector-chip {
+            padding: 0.25rem 0.75rem;
+            background: rgba(100, 116, 139, 0.2);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sector-chip:hover {
+            background: rgba(79, 70, 229, 0.2);
+            border-color: rgba(79, 70, 229, 0.4);
+            color: #a5b4fc;
+        }
+
+        /* Markdown Styling */
+        .report-content h1 {
+            color: #ffffff;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid rgba(79, 70, 229, 0.5);
+            padding-bottom: 0.5rem;
+        }
+
+        .report-content h2 {
+            color: #e2e8f0;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 0.75rem 0;
+        }
+
+        .report-content h3 {
+            color: #cbd5e1;
+            font-size: 1.2rem;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .report-content ul, .report-content ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .report-content li {
+            margin-bottom: 0.25rem;
+        }
+
+        .report-content strong {
+            color: #ffffff;
+        }
+
+        .report-content code {
+            background: rgba(100, 116, 139, 0.2);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #a5b4fc;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            .form-group {
+                min-width: 100%;
+            }
+            
+            .metadata-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">MA</div>
+                    <div class="logo-text">Market Analysis</div>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>System Online</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="hero-section">
+                <h1 class="hero-title">Advanced Market Analysis</h1>
+                <p class="hero-subtitle">AI-powered sector analysis with real-time data scraping and intelligent insights</p>
+            </div>
+
+            <div class="analysis-card">
+                <div class="input-section">
+                    <div class="input-group">
+                        <div class="form-group">
+                            <label class="form-label">Sector to Analyze</label>
+                            <input 
+                                type="text" 
+                                id="sectorInput" 
+                                class="form-input" 
+                                placeholder="e.g., Technology, Healthcare, Energy..."
+                                maxlength="50"
+                            >
+                            <div class="quick-sectors">
+                                <span class="sector-chip" onclick="setSector('Technology')">Technology</span>
+                                <span class="sector-chip" onclick="setSector('Healthcare')">Healthcare</span>
+                                <span class="sector-chip" onclick="setSector('Energy')">Energy</span>
+                                <span class="sector-chip" onclick="setSector('Banking')">Banking</span>
+                                <span class="sector-chip" onclick="setSector('Automotive')">Automotive</span>
+                                <span class="sector-chip" onclick="setSector('Renewable Energy')">Renewable Energy</span>
+                            </div>
+                        </div>
+                        <button id="analyzeBtn" class="analyze-btn" onclick="startAnalysis()">
+                            <div class="loading-spinner" id="loadingSpinner"></div>
+                            <span id="btnText">Analyze Sector</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <div class="results-section" id="resultsSection">
+                <div class="analysis-card">
+                    <div class="results-header">
+                        <h2 class="results-title" id="resultsTitle">Analysis Results</h2>
+                        <div class="performance-badge" id="performanceBadge">
+                            ⚡ Generated in 0.0s
+                        </div>
+                    </div>
+                    <div class="report-content" id="reportContent"></div>
+                    <div class="metadata-section" id="metadataSection"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let isAnalyzing = false;
+
+        function setSector(sector) {
+            document.getElementById('sectorInput').value = sector;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function setLoadingState(loading) {
+            const btn = document.getElementById('analyzeBtn');
+            const spinner = document.getElementById('loadingSpinner');
+            const btnText = document.getElementById('btnText');
+            const sectorInput = document.getElementById('sectorInput');
+            
+            isAnalyzing = loading;
+            btn.disabled = loading;
+            sectorInput.disabled = loading;
+            
+            if (loading) {
+                spinner.style.display = 'inline-block';
+                btnText.textContent = 'Analyzing...';
+            } else {
+                spinner.style.display = 'none';
+                btnText.textContent = 'Analyze Sector';
+            }
+        }
+
+        function displayResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsTitle = document.getElementById('resultsTitle');
+            const reportContent = document.getElementById('reportContent');
+            const performanceBadge = document.getElementById('performanceBadge');
+            const metadataSection = document.getElementById('metadataSection');
+
+            // Update title
+            resultsTitle.textContent = `${data.sector} Sector Analysis`;
+
+            // Update performance badge
+            const responseTime = data.response_time || 0;
+            const cacheStatus = data.cached ? '📋' : '⚡';
+            performanceBadge.textContent = `${cacheStatus} ${data.cached ? 'Cached' : 'Generated'} in ${responseTime}s`;
+
+            // Convert markdown to HTML (basic conversion)
+            let htmlContent = data.report
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/^\- (.*$)/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/^(?!<[h|u|l])/gm, '<p>')
+                .replace(/(?<![>])$/gm, '</p>');
+
+            reportContent.innerHTML = htmlContent;
+
+            // Create metadata cards
+            if (data.metadata) {
+                const metadata = data.metadata;
+                metadataSection.innerHTML = `
+                    <div class="metadata-card">
+                        <div class="metadata-title">Processing Time</div>
+                        <div class="metadata-value">${responseTime}s</div>
+                    </div>
+                    <div class="metadata-card">
+                        <div class="metadata-title">Sources Found</div>
+                        <div class="metadata-value">${metadata.urls_found || 0}</div>
+                    </div>
+                    <div class="metadata-card">
+                        <div class="metadata-title">Sites Scraped</div>
+                        <div class="metadata-value">${metadata.sites_scraped || 0}</div>
+                    </div>
+                    <div class="metadata-card">
+                        <div class="metadata-title">Cache Status</div>
+                        <div class="metadata-value">${data.cached ? 'Hit' : 'Miss'}</div>
+                    </div>
+                `;
+            }
+
+            // Show results section
+            resultsSection.style.display = 'block';
+            
+            // Smooth scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function startAnalysis() {
+            if (isAnalyzing) return;
+
+            const sectorInput = document.getElementById('sectorInput');
+            const sector = sectorInput.value.trim();
+
+            if (!sector) {
+                showError('Please enter a sector name');
+                return;
+            }
+
+            if (sector.length < 2) {
+                showError('Sector name must be at least 2 characters long');
+                return;
+            }
+
+            if (sector.length > 50) {
+                showError('Sector name must be less than 50 characters');
+                return;
+            }
+
+            // Basic validation
+            if (!/^[a-zA-Z0-9\s\-_&]+$/.test(sector)) {
+                showError('Sector name contains invalid characters');
+                return;
+            }
+
+            setLoadingState(true);
+
+            try {
+                // Check if we're running from file:// protocol
+                if (window.location.protocol === 'file:') {
+                    throw new Error('Please serve this file through a web server (not file://) or run the FastAPI backend on port 8000');
+                }
+
+                // Determine the correct API URL
+                const apiUrl = window.location.hostname === 'localhost' && window.location.port === '5500' 
+                    ? 'http://localhost:8000' 
+                    : '';
+
+                const response = await fetch(`${apiUrl}/analyze/${encodeURIComponent(sector)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                // Check content type first
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const textResponse = await response.text();
+                    console.error('Non-JSON response:', textResponse);
+                    
+                    if (response.status === 0 || !response.ok) {
+                        throw new Error(`API server not responding. Please ensure FastAPI is running on port 8000. Status: ${response.status}`);
+                    } else {
+                        throw new Error(`Server returned HTML/text instead of JSON. Check API configuration.`);
+                    }
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    const errorMsg = errorData.detail?.error || errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                    throw new Error(errorMsg);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                
+                // Provide more specific error messages
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    showError('Cannot connect to API server. Please ensure FastAPI is running on http://localhost:8000');
+                } else if (error.message.includes('JSON.parse')) {
+                    showError('Server returned invalid response. Check if FastAPI backend is properly configured.');
+                } else {
+                    showError(`Analysis failed: ${error.message}`);
+                }
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // Handle Enter key in input field
+        document.getElementById('sectorInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                startAnalysis();
+            }
+        });
+
+        // Check API health on load
+        async function checkApiHealth() {
+            try {
+                // Determine the correct API URL
+                const apiUrl = window.location.hostname === 'localhost' && window.location.port === '5500' 
+                    ? 'http://localhost:8000' 
+                    : '';
+                
+                const response = await fetch(`${apiUrl}/health`);
+                
+                if (response.ok) {
+                    const healthData = await response.json();
+                    console.log('API is healthy:', healthData);
+                    
+                    // Update status indicator
+                    const statusIndicator = document.querySelector('.status-indicator');
+                    const statusDot = document.querySelector('.status-dot');
+                    const statusText = statusIndicator.querySelector('span');
+                    
+                    statusDot.style.background = '#22c55e';
+                    statusText.textContent = 'API Connected';
+                } else {
+                    throw new Error(`Health check failed: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Failed to check API health:', error);
+                
+                // Update status indicator to show error
+                const statusIndicator = document.querySelector('.status-indicator');
+                const statusDot = document.querySelector('.status-dot');
+                const statusText = statusIndicator.querySelector('span');
+                
+                statusIndicator.style.background = 'rgba(239, 68, 68, 0.1)';
+                statusIndicator.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                statusDot.style.background = '#ef4444';
+                statusText.textContent = 'API Offline';
+                
+                showError('API server not responding. Please ensure FastAPI is running on http://localhost:8000');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkApiHealth();
+            console.log('Market Analysis Dashboard loaded');
+        });
+    </script>
+</body>
+</html>
