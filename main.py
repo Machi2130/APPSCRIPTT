@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import asyncio
-import aiohttp
+import httpx
 import aiocache
 from aiocache import Cache
 from aiocache.serializers import JsonSerializer
@@ -178,7 +178,7 @@ class OptimizedSearcher:
             logger.error(f"Search failed: {str(e)}")
             raise HTTPException(status_code=503, detail=f"Search service unavailable: {str(e)}")
 
-# Enhanced web scraping
+# Enhanced web scraping using httpx instead of aiohttp
 class OptimizedWebScraper:
     @staticmethod
     async def scrape_websites(urls: List[str]) -> List[ScrapedContent]:
@@ -186,20 +186,17 @@ class OptimizedWebScraper:
         
         semaphore = asyncio.Semaphore(MAX_CONCURRENT_SCRAPES)
         
-        async def scrape_single_url(session: aiohttp.ClientSession, url: str) -> Optional[ScrapedContent]:
+        async def scrape_single_url(client: httpx.AsyncClient, url: str) -> Optional[ScrapedContent]:
             async with semaphore:
-                return await OptimizedWebScraper._scrape_url_optimized(session, url)
-        
-        timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
-        connector = aiohttp.TCPConnector(limit=100, limit_per_host=20)
+                return await OptimizedWebScraper._scrape_url_optimized(client, url)
         
         try:
-            async with aiohttp.ClientSession(
-                connector=connector,
-                timeout=timeout,
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(REQUEST_TIMEOUT),
+                limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
                 headers={'User-Agent': 'Mozilla/5.0 (compatible; Research Bot)'}
-            ) as session:
-                tasks = [scrape_single_url(session, url) for url in urls]
+            ) as client:
+                tasks = [scrape_single_url(client, url) for url in urls]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
             
             scraped_contents = []
@@ -215,23 +212,25 @@ class OptimizedWebScraper:
                 raise HTTPException(status_code=503, detail="No content could be scraped")
             
             return scraped_contents
-        finally:
-            await connector.close()
+            
+        except Exception as e:
+            logger.error(f"Web scraping failed: {str(e)}")
+            raise HTTPException(status_code=503, detail="No content could be scraped")
     
     @staticmethod
-    async def _scrape_url_optimized(session: aiohttp.ClientSession, url: str) -> Optional[ScrapedContent]:
+    async def _scrape_url_optimized(client: httpx.AsyncClient, url: str) -> Optional[ScrapedContent]:
         if url.lower().endswith(('.pdf', '.doc', '.docx', '.ppt')):
             return None
         
-        # Try session-based scraping first
+        # Try httpx-based scraping first
         try:
-            result = await OptimizedWebScraper._scrape_with_session(session, url)
+            result = await OptimizedWebScraper._scrape_with_httpx(client, url)
             if result and len(result.get('content', '')) > 100:
                 scraped_content = OptimizedWebScraper._create_scraped_content(url, result)
-                logger.info(f"Scraped {urlparse(url).netloc} using session")
+                logger.info(f"Scraped {urlparse(url).netloc} using httpx")
                 return scraped_content
         except Exception as e:
-            logger.error(f"Session scraping failed for {urlparse(url).netloc}: {str(e)}")
+            logger.error(f"HTTPX scraping failed for {urlparse(url).netloc}: {str(e)}")
         
         # Fallback methods
         fallback_methods = [
@@ -254,23 +253,23 @@ class OptimizedWebScraper:
         return None
     
     @staticmethod
-    async def _scrape_with_session(session: aiohttp.ClientSession, url: str) -> Optional[Dict]:
+    async def _scrape_with_httpx(client: httpx.AsyncClient, url: str) -> Optional[Dict]:
         try:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    html = await response.text(encoding='utf-8', errors='ignore')
-                    
-                    loop = asyncio.get_event_loop()
-                    result = await loop.run_in_executor(
-                        thread_pool,
-                        OptimizedWebScraper._parse_html_optimized,
-                        html
-                    )
-                    
-                    result['method'] = 'session'
-                    return result
+            response = await client.get(url)
+            if response.status_code == 200:
+                html = response.text
+                
+                loop = asyncio.get_event_loop()
+                result = await loop.run_in_executor(
+                    thread_pool,
+                    OptimizedWebScraper._parse_html_optimized,
+                    html
+                )
+                
+                result['method'] = 'httpx'
+                return result
         except Exception as e:
-            logger.error(f"Session scraping failed: {str(e)}")
+            logger.error(f"HTTPX scraping failed: {str(e)}")
         
         return None
     
@@ -635,6 +634,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"SerpAPI configured: {'Yes' if SERPAPI_KEY else 'No'}")
     logger.info(f"Crawl4AI available: {'Yes' if CRAWL4AI_AVAILABLE else 'No'}")
     logger.info(f"Running on Render: {'Yes' if os.getenv('RENDER') else 'No'}")
+    logger.info("Using HTTPX for HTTP requests (Python 3.13.3 compatible)")
     
     yield
     
@@ -741,7 +741,8 @@ async def health_check():
         "features": {
             "detailed_investment_analysis": True,
             "real_time_data_scraping": True,
-            "professional_reporting": True
+            "professional_reporting": True,
+            "httpx_client": True
         },
         "environment": {
             "render": bool(os.getenv("RENDER")),
@@ -809,6 +810,7 @@ if __name__ == "__main__":
     
     logger.info(f"Starting server on {host}:{port}")
     logger.info(f"Python version: {sys.version}")
+    logger.info("Using HTTPX instead of aiohttp for Python 3.13.3 compatibility")
     logger.info(f"Access the API docs at http://localhost:{port}/docs" if port == 8000 else f"API will be available at your deployment URL")
     
     uvicorn.run(
