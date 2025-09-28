@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Union
 import logging
 from pydantic import BaseModel, field_validator
 import os
+import sys
 from contextlib import asynccontextmanager
 from groq import Groq
 from serpapi import GoogleSearch
@@ -28,6 +29,10 @@ from functools import lru_cache, wraps
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 
+# Python 3.13 compatibility check
+print(f"Python version: {sys.version}")
+print(f"Python version info: {sys.version_info}")
+
 load_dotenv()
 
 # Configuration
@@ -37,8 +42,12 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
 if not GROQ_API_KEY or not SERPAPI_KEY:
     print("Missing required API keys in environment variables")
-    print("Please set GROQ_API_KEY and SERPAPI_KEY in your .env file")
-    exit(1)
+    print("Please set GROQ_API_KEY and SERPAPI_KEY in your .env file or environment")
+    # Don't exit on production, let it continue for health checks
+    if os.getenv("RENDER"):
+        print("Running on Render - API keys must be set in environment variables")
+    else:
+        exit(1)
 
 # Constants
 GROQ_MODEL = "deepseek-r1-distill-llama-70b"
@@ -49,12 +58,21 @@ CACHE_TTL = 3600
 REQUEST_TIMEOUT = 15
 MAX_WORKERS = 4
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Setup logging with better formatting
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 logger = logging.getLogger(__name__)
 
-# Initialize clients
-groq_client = Groq(api_key=GROQ_API_KEY)
+# Initialize clients with better error handling
+try:
+    groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+except Exception as e:
+    logger.error(f"Failed to initialize Groq client: {e}")
+    groq_client = None
+
 thread_pool = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
 # Try to import crawl4ai, but make it optional
@@ -121,7 +139,7 @@ class OptimizedSearcher:
             
             params = {
                 "engine": "duckduckgo",
-                "q": f"{clean_sector} India market trend and invesment chances",
+                "q": f"{clean_sector} India market trend and investment chances",
                 "kl": "in-en",
                 "api_key": SERPAPI_KEY,
                 "num": TOP_URLS_TO_PICK + 3
@@ -358,6 +376,11 @@ class OptimizedLLMProcessor:
     @staticmethod
     async def generate_detailed_investment_report(scraped_data: List[ScrapedContent], sector: str) -> str:
         logger.info(f"Generating detailed investment report for {sector}")
+        
+        # Check if groq_client is available
+        if not groq_client:
+            logger.error("Groq client not available")
+            return OptimizedLLMProcessor._generate_fallback_report(sector, len(scraped_data))
         
         def _generate_report():
             clean_sector = sanitize_input(sector, 100)
@@ -607,9 +630,11 @@ class OptimizedAnalysisFlow:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Investment Analysis API")
+    logger.info(f"Python version: {sys.version}")
     logger.info(f"GROQ API configured: {'Yes' if GROQ_API_KEY else 'No'}")
     logger.info(f"SerpAPI configured: {'Yes' if SERPAPI_KEY else 'No'}")
     logger.info(f"Crawl4AI available: {'Yes' if CRAWL4AI_AVAILABLE else 'No'}")
+    logger.info(f"Running on Render: {'Yes' if os.getenv('RENDER') else 'No'}")
     
     yield
     
@@ -671,6 +696,13 @@ async def root():
 async def analyze_sector(sector: str, request: Request):
     """Generate comprehensive investment analysis for a sector"""
     
+    # Check if API keys are available
+    if not GROQ_API_KEY or not SERPAPI_KEY:
+        raise HTTPException(
+            status_code=503, 
+            detail="API keys not configured. Please set GROQ_API_KEY and SERPAPI_KEY environment variables."
+        )
+    
     # Rate limiting
     client_ip = request.client.host
     if not check_rate_limit(client_ip, limit=5, window=60):
@@ -699,6 +731,7 @@ async def health_check():
     return {
         "status": "healthy",
         "version": "1.0.0",
+        "python_version": sys.version,
         "timestamp": datetime.now().isoformat(),
         "services": {
             "groq_api": bool(groq_client and GROQ_API_KEY),
@@ -709,6 +742,10 @@ async def health_check():
             "detailed_investment_analysis": True,
             "real_time_data_scraping": True,
             "professional_reporting": True
+        },
+        "environment": {
+            "render": bool(os.getenv("RENDER")),
+            "python_version": sys.version_info[:3]
         }
     }
 
@@ -771,6 +808,7 @@ if __name__ == "__main__":
     host = "0.0.0.0"  # Important: must bind to 0.0.0.0 for Render
     
     logger.info(f"Starting server on {host}:{port}")
+    logger.info(f"Python version: {sys.version}")
     logger.info(f"Access the API docs at http://localhost:{port}/docs" if port == 8000 else f"API will be available at your deployment URL")
     
     uvicorn.run(
