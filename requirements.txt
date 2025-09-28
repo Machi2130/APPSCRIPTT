@@ -5,12 +5,10 @@ aiocache==0.12.2
 groq==0.9.0
 serpapi==0.1.5
 beautifulsoup4==4.12.2
-requests==2.31.0
 trafilatura==1.11.0
 python-dotenv==1.0.1
 pydantic==2.8.2
-redis==5.0.1  # If using Redis for aiocache
-crawl4ai==0.3.2  # Optional, if installed
-gunicorn==20.1.0  # For production deployment on Render
+redis==5.0.1
+crawl4ai==0.3.2
+gunicorn==20.1.0
 requests>=2.32.3
-
